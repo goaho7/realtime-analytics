@@ -1,23 +1,25 @@
 from typing import Annotated
 from fastapi import APIRouter, Depends
 
-from user_api.schemas.event import EventSchema
-from user_api.services.kafka_producer import KafkaProducerManager
+from schemas.event import EventSchema
+from services.kafka_producer import KafkaProducerManager
+from user_api.api.depensens import kafka_producer
 
 
 router = APIRouter()
-KAFKA_BOOTSTRAP_SERVERS = "localhost:9092"  # Адрес Kafka broker'а
-KAFKA_TOPIC = "sensor-events"  # Название топика
 
-@router.post("/event/")
+KAFKA_TOPIC = "sensor-events"
+
+@router.post("")
 def event(
     event: EventSchema,
-    kafka_producer: Annotated[KafkaProducerManager, Depends(KafkaProducerManager(KAFKA_BOOTSTRAP_SERVERS))]
+    kafka_producer: KafkaProducerManager = Depends(kafka_producer)
 ):
     event_data = event.model_dump()
     kafka_producer.send_message(KAFKA_TOPIC, event_data)
 
     return {
         "status": "success",
-        "message": "Данные успешно приняты"
+        "message": "Данные успешно приняты",
+        'data': event_data
     }
