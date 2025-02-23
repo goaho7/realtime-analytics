@@ -8,6 +8,7 @@ from api.depensens import kafka_producer
 router = APIRouter()
 
 KAFKA_TOPIC = "sensor-events"
+KAFKA_BOOTSTRAP_SERVERS = "kafka:9093"
 
 @router.post("")
 def event(
