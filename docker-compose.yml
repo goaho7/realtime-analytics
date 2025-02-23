@@ -7,6 +7,11 @@ services:
       - "8000:8000"
     depends_on:
       - kafka
+
+  data-spamer:
+    build: ./data_spamer
+    depends_on:
+      - user-api
   
   zookeeper:
     image: wurstmeister/zookeeper
