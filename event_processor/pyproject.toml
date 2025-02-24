@@ -1,0 +1,23 @@
+[project]
+name = "event-processor"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "goaho7",email = "goaho7@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi (>=0.115.8,<0.116.0)",
+    "uvicorn (>=0.34.0,<0.35.0)",
+    "sqlalchemy (>=2.0.38,<3.0.0)",
+    "alembic (>=1.14.1,<2.0.0)",
+    "pydantic-settings (>=2.8.0,<3.0.0)",
+    "asyncpg (>=0.30.0,<0.31.0)",
+    "confluent-kafka (>=2.8.0,<3.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
