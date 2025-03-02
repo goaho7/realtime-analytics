@@ -1,0 +1,1 @@
+from .analytics import router as analytic_router
