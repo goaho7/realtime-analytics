@@ -1,5 +1,7 @@
 import json
 import logging
+from asyncio import get_running_loop
+from concurrent.futures import ThreadPoolExecutor
 from typing import Dict
 from confluent_kafka import Producer, KafkaException
 from fastapi import HTTPException
@@ -13,6 +15,8 @@ class KafkaProducerManager:
         :param config: Конфигурация продюсера (словарь).
         """
         try:
+            self.message_count = 0
+            self.flush_interval = 100
             self.producer = Producer(config)
             logging.info(f"Kafka Producer инициализирован с конфигурацией: {config}")
         except KafkaException as e:
@@ -32,7 +36,7 @@ class KafkaProducerManager:
                 f"Сообщение успешно доставлено в {msg.topic()} [{msg.partition()}]"
             )
 
-    def send_message(self, topic: str, message: dict):
+    async def send_message(self, topic: str, message: dict):
         """
         Отправляет сообщение в указанный топик Kafka.
 
@@ -49,10 +53,21 @@ class KafkaProducerManager:
 
         try:
             message_str = json.dumps(message)
-            self.producer.produce(
-                topic, value=message_str.encode("utf-8"), callback=self.delivery_report
-            )
+            encoded_message = message_str.encode("utf-8")
+            loop = get_running_loop()
+            with ThreadPoolExecutor() as pool:
+                await loop.run_in_executor(
+                    pool,
+                    lambda: self.producer.produce(
+                        topic, value=encoded_message, callback=self.delivery_report
+                    ),
+                )
             logging.info(f"Сообщение отправлено в топик {topic}: {message}")
+
+            self.message_count += 1
+            if self.message_count >= self.flush_interval:
+                await self.flush()
+                self.message_count = 0
         except UnicodeEncodeError as e:
             logging.error(f"Ошибка кодирования сообщения: {str(e)}")
             raise HTTPException(
