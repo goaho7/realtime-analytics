@@ -1,6 +1,12 @@
 from services.kafka_producer import KafkaProducerManager
 
-KAFKA_BOOTSTRAP_SERVERS = "kafka:9093"
+
+CONFIG = {
+    "bootstrap.servers": "broker:29092",
+    "acks": "all",
+    "retries": 3,
+}
+
 
 def kafka_producer():
-    return KafkaProducerManager(bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS)
+    return KafkaProducerManager(CONFIG)
