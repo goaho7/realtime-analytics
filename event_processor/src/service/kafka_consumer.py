@@ -46,7 +46,7 @@ class KafkaConsumerBase:
             logging.info(f"Подписан на топики: {self.topics}")
         except KafkaException as e:
             logging.error(f"Ошибка подписки на топики: {e}")
-            raise
+            raise RuntimeError(f"Не удалось подписаться на топики: {str(e)}")
 
     async def process_message(self, msg):
         """
@@ -62,11 +62,15 @@ class KafkaConsumerBase:
             elif msg.error().code() == KafkaError.UNKNOWN_TOPIC_OR_PART:
                 logging.error(f"Топик не существует: {msg.topic()}")
             else:
-                logging.error(f"Ошибка Kafka: {msg.error()}")
+                logging.error(
+                    f"Ошибка Kafka в топике {msg.topic()} [{msg.partition()}]: "
+                    f"{msg.error().str()} (код: {msg.error().code()})"
+                )
         else:
             try:
                 message_value = msg.value().decode("utf-8")
                 message_data = json.loads(message_value)
+                logging.info(f"Обработка сообщения из {msg.topic()}: {message_data}")
                 await self.event_repository.create(message_data)
             except json.JSONDecodeError:
                 logging.error(f"Получено не-JSON сообщение: {message_value}")
