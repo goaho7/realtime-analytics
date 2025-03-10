@@ -8,7 +8,7 @@ from settings.config import settings
 Base = declarative_base()
 
 
-engine = create_async_engine(settings.async_postgres_connect)
+engine = create_async_engine(settings.async_postgres_connect())
 async_session_maker = async_sessionmaker(engine, expire_on_commit=False)
 
 
