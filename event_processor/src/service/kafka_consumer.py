@@ -6,6 +6,7 @@ from confluent_kafka import Consumer, KafkaException, KafkaError
 from concurrent.futures import ThreadPoolExecutor
 
 from src.repositories.event import EventRepository
+from src.service.processing_service import processing
 
 
 logging.basicConfig(
@@ -71,17 +72,9 @@ class KafkaConsumerBase:
                 message_value = msg.value().decode("utf-8")
                 message_data = json.loads(message_value)
                 logging.info(f"Обработка сообщения из {msg.topic()}: {message_data}")
-                await self.event_repository.create(message_data)
+                await processing(message_data)
             except json.JSONDecodeError:
                 logging.error(f"Получено не-JSON сообщение: {message_value}")
-
-    def close(self):
-        """
-        Корректно закрывает консьюмер.
-        """
-        if self.consumer:
-            self.consumer.close()
-            logging.info("Консьюмер закрыт.")
 
     def poll_message(self, consumer, timeout=1.0):
         if not consumer:
@@ -106,3 +99,11 @@ class KafkaConsumerBase:
             logging.info("Прервано пользователем.")
         finally:
             self.close()
+
+    def close(self):
+        """
+        Корректно закрывает консьюмер.
+        """
+        if self.consumer:
+            self.consumer.close()
+            logging.info("Консьюмер закрыт.")
