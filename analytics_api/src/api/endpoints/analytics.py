@@ -14,4 +14,3 @@ async def get_analytics(
 ):
     result = await AnalyticsRepository().get(sensor_id, start_time, end_time)
     return result
-
