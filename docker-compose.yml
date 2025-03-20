@@ -108,6 +108,7 @@ services:
       KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
       KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
       CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     healthcheck:
       test: ["CMD", "kafka-topics", "--bootstrap-server", "broker:29092", "--list"]
       interval: 15s
@@ -119,7 +120,6 @@ services:
       options:
         max-size: "10m"
         max-file: "5"
-  
 
   # celery-worker:
   #   build: .

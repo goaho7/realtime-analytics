@@ -13,24 +13,10 @@ class AnalyticsRepository:
 
     async def get(
         self,
-        sensor_id: Optional[str],
-        start_time: Optional[int],
-        end_time: Optional[int],
+        sensor_id: Optional[str] = None,
+        start_time: Optional[int] = None,
+        end_time: Optional[int] = None,
     ) -> List[Dict[str, Union[float, int, str]]]:
-
-        # async with async_session_maker() as session:
-        #     query = select(self.model)
-
-        #     if sensor_id is not None:
-        #         query = query.filter(self.model.sensor_id == sensor_id)
-        #     if start_time is not None:
-        #         query = query.filter(self.model.timestamp >= start_time)
-        #     if end_time is not None:
-        #         query = query.filter(self.model.timestamp <= end_time)
-
-        #     result = await session.execute(query)
-        #     results = result.scalars().all()
-
         async with async_session_maker() as session:
             query = (
                 select(
@@ -75,10 +61,12 @@ class AnalyticsRepository:
             return [
                 {
                     "sensor_id": row["sensor_id"],
-                    "avg_temperature": round(row["avg_temperature"], 2),
-                    "avg_humidity": round(row["avg_humidity"], 2),
-                    "avg_noise_level": round(row["avg_noise_level"], 2),
-                    "avg_air_quality_index": round(row["avg_air_quality_index"], 2),
+                    "avg_temperature": float(round(row["avg_temperature"], 2)),
+                    "avg_humidity": float(round(row["avg_humidity"], 2)),
+                    "avg_noise_level": float(round(row["avg_noise_level"], 2)),
+                    "avg_air_quality_index": float(
+                        round(row["avg_air_quality_index"], 2)
+                    ),
                     "min_timestamp": row["min_timestamp"],
                     "max_timestamp": row["max_timestamp"],
                 }

@@ -11,12 +11,12 @@ KAFKA_TOPIC = "sensor-events"
 
 
 @router.post("")
-def event(
+async def event(
     event: EventSchema, kafka_producer: KafkaProducerManager = Depends(kafka_producer)
 ):
     try:
         event_data = event.model_dump()
-        kafka_producer.send_message(KAFKA_TOPIC, event_data)
+        await kafka_producer.send_message(KAFKA_TOPIC, event_data)
     except Exception as e:
         return {"status": "error", "message": e}
     finally:
