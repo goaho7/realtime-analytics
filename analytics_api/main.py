@@ -12,7 +12,7 @@ consumer = KafkaConsumerBase(kafka_config, kafka_topics)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await consumer.subscribe_to_topics()
+    consumer.subscribe_to_topics()
     task = asyncio.create_task(consumer.run_consumer())
     yield
     task.cancel()

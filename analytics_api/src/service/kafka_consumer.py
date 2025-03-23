@@ -50,6 +50,7 @@ class KafkaConsumerBase:
             try:
                 self.consumer.subscribe(self.topics)
                 logging.info(f"Подписан на топики: {self.topics}")
+                break
             except KafkaException as e:
                 attempt += 1
                 delay = initial_delay * (2 ** (attempt - 1))

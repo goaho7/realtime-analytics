@@ -1,8 +1,6 @@
-import math
-
 from fastapi import HTTPException
 from typing import Optional, List, Dict, Union
-from sqlalchemy import select, func
+from sqlalchemy import select, func, delete
 
 from settings.db_setting import async_session_maker
 from src.models.event import Event
@@ -72,3 +70,31 @@ class AnalyticsRepository:
                 }
                 for row in rows
             ]
+
+    async def fetch_old_events(self, cutoff_timestamp) -> list[dict]:
+
+        async with async_session_maker() as session:
+
+            stmt = select(self.model).where(self.model.timestamp < cutoff_timestamp)
+            result = await session.execute(stmt)
+            events = result.scalars().all()
+
+            events_list = [
+                {
+                    "id": event.id,
+                    "sensor_id": event.sensor_id,
+                    "temperature": event.temperature,
+                    "humidity": event.humidity,
+                    "noise_level": event.noise_level,
+                    "air_quality_index": event.air_quality_index,
+                    "timestamp": event.timestamp,
+                }
+                for event in events
+            ]
+            return events_list
+
+    async def delete_old_events(self, cutoff_timestamp: int):
+        async with async_session_maker() as session:
+            stmt = delete(self.model).where(self.model.timestamp < cutoff_timestamp)
+            await session.execute(stmt)
+            await session.commit()
