@@ -26,7 +26,6 @@ async def processing(message_data):
         kafka_producer = KafkaProducerManager(CONFIG)
         event_time = datetime.now().isoformat()
         await kafka_producer.send_message(KAFKA_TOPIC, {"event_time": event_time})
-        # await kafka_producer.flush()
     except Exception as e:
         logging.info(e)
         return {"status": "error", "message": e}
