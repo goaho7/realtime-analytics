@@ -38,10 +38,7 @@ class S3Client:
             yield client
 
     async def upload_file(self, file: Union[bytes, BinaryIO], file_name: str) -> None:
-        async with self.get_client() as client:
-            await client.put_object(Bucket=self.bucket_name, Key=file_name, Body=file)
-
-    async def upload_file(self, file: Union[bytes, BinaryIO], file_name: str) -> None:
+        """Загружает файл в S3"""
         content_type, _ = guess_type(file_name)
         content_type = content_type or "application/octet-stream"
 
@@ -56,4 +53,14 @@ class S3Client:
                 logger.info(f"Successfully uploaded {file_name} to {self.bucket_name}")
             except Exception as e:
                 logger.error(f"Failed to upload {file_name} to S3: {str(e)}")
+                raise
+
+    async def delete_file(self, file_name: str) -> None:
+        """Удаляет файл из S3"""
+        async with self.get_client() as client:
+            try:
+                await client.delete_object(Bucket=self.bucket_name, Key=file_name)
+                logger.info(f"Successfully deleted {file_name} from {self.bucket_name}")
+            except Exception as e:
+                logger.error(f"Failed to delete {file_name} from S3: {str(e)}")
                 raise

@@ -4,6 +4,7 @@ from fastapi import HTTPException
 from typing import Optional, List, Dict, Union
 from sqlalchemy import select, func, delete
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.sql.expression import BinaryExpression
 
 from settings.db_setting import async_session_maker
 from src.models.event import Event
@@ -86,7 +87,7 @@ class AnalyticsRepository:
             try:
                 stmt = (
                     select(self.model)
-                    .where(self.model.timestamp < cutoff_timestamp)
+                    .where(self._old_events_filter(cutoff_timestamp))
                     .execution_options(yield_per=1000)
                 )
                 result = await session.stream(stmt)
@@ -120,7 +121,7 @@ class AnalyticsRepository:
                 while True:
                     select_stmt = (
                         select(self.model.id)
-                        .where(self.model.timestamp < cutoff_timestamp)
+                        .where(self._old_events_filter(cutoff_timestamp))
                         .limit(batch_size)
                     )
                     select_result = await session.execute(select_stmt)
@@ -142,3 +143,6 @@ class AnalyticsRepository:
                 logger.error(f"Database error in delete_old_events: {str(e)}")
                 await session.rollback()
                 raise HTTPException(status_code=500, detail="Database error occurred")
+
+    def _old_events_filter(self, cutoff_timestamp: int) -> BinaryExpression:
+        return self.model.timestamp < cutoff_timestamp

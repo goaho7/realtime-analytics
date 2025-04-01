@@ -15,6 +15,7 @@ class S3Service:
     def __init__(self, s3_client: S3Client, analytics_repo: AnalyticsRepository):
         self.s3_client = s3_client
         self.analytics_repo = analytics_repo
+        self.compensation_steps = []
 
     async def upload_file(self) -> Dict[str, str]:
         now = datetime.now(timezone.utc)
@@ -33,6 +34,9 @@ class S3Service:
             try:
                 logger.info(f"Uploading {len(events_list)} events to S3 as {file_name}")
                 await self.s3_client.upload_file(file=events_json, file_name=file_name)
+                self.compensation_steps.append(
+                    lambda: self.s3_client.delete_file(file_name)
+                )
                 logger.info(f"Successfully uploaded {file_name} to S3")
             except Exception as e:
                 logger.error(f"Failed to upload {file_name} to S3: {str(e)}")
@@ -48,11 +52,7 @@ class S3Service:
                 )
             except Exception as e:
                 logger.error(f"Failed to delete old events from database: {str(e)}")
-                return {
-                    "message": f"Events archived to {file_name}, but failed to delete from database: {str(e)}",
-                    "file_name": file_name,
-                    "status": "partial_success",
-                }
+                raise
 
             return {
                 "message": f"Events archived to {file_name} and deleted from database",
@@ -61,6 +61,10 @@ class S3Service:
             }
 
         except Exception as e:
-            raise HTTPException(
-                status_code=500, detail=f"Failed to upload to S3: {str(e)}"
-            )
+            logger.error(f"Error: {str(e)} ❌ Rolling back...")
+
+            while self.compensation_steps:
+                compensation_step = self.compensation_steps.pop()
+                await compensation_step()
+
+            logger.info("Rollback completed ✅")
