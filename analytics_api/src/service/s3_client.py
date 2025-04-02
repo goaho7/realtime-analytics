@@ -1,8 +1,11 @@
 import logging
 
+from datetime import datetime, timezone
 from contextlib import asynccontextmanager
-from typing import BinaryIO, Union
+from typing import List, Optional, Union, BinaryIO
 from mimetypes import guess_type
+from botocore.exceptions import ClientError
+from fastapi import HTTPException
 
 from aiobotocore.session import get_session
 
@@ -64,3 +67,62 @@ class S3Client:
             except Exception as e:
                 logger.error(f"Failed to delete {file_name} from S3: {str(e)}")
                 raise
+
+    async def list_files(
+        self,
+        start_time: Optional[Union[datetime, str]] = None,
+        end_time: Optional[Union[datetime, str]] = None,
+    ) -> List[str]:
+        """
+        Получает список файлов за указанный промежуток времени.
+        """
+
+        def parse_datetime(value: Union[str, datetime, None]) -> Optional[datetime]:
+            if isinstance(value, str):
+                return datetime.strptime(value, "%d-%m-%Y").replace(tzinfo=timezone.utc)
+            return value
+
+        start_time = parse_datetime(start_time)
+        end_time = parse_datetime(end_time)
+
+        async with self.get_client() as client:
+            try:
+                response = await client.list_objects_v2(Bucket=self.bucket_name)
+                files = response.get("Contents", [])
+
+                filtered_files = []
+                for obj in files:
+                    key = obj["Key"]
+                    last_modified = obj["LastModified"].replace(tzinfo=timezone.utc)
+
+                    if (start_time and last_modified < start_time) or (
+                        end_time and last_modified > end_time
+                    ):
+                        continue
+
+                    filtered_files.append(key)
+
+                logger.info(f"Retrieved {len(filtered_files)} files from S3")
+                return filtered_files
+            except Exception as e:
+                logger.error(f"Failed to list files in S3: {str(e)}")
+                raise
+
+    async def download_file(self, file_name: str) -> bytes:
+        """Скачивает файл из S3"""
+        async with self.get_client() as client:
+            try:
+                response = await client.get_object(
+                    Bucket=self.bucket_name, Key=file_name
+                )
+                data = await response["Body"].read()
+                logger.info(
+                    f"Successfully downloaded {file_name} from {self.bucket_name}"
+                )
+                return data
+            except ClientError as e:
+                if e.response["Error"]["Code"] == "NoSuchKey":
+                    logger.warning(f"File {file_name} not found in {self.bucket_name}")
+                    raise HTTPException(status_code=404, detail="File not found")
+                logger.error(f"Failed to download {file_name} from S3: {str(e)}")
+                raise HTTPException(status_code=500, detail="Error downloading file")

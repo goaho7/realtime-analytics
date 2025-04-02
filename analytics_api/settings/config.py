@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     ENDPOINT_URL: Optional[str] = None
     BUCKET_NAME: Optional[str] = None
 
+    CELERY_BROKER_URL: Optional[str] = None
+    CELERY_RESULT_BACKEND: Optional[str] = None
+
     def async_postgres_connect(self) -> str:
         """Формирует строку подключения к PostgreSQL с использованием asyncpg."""
         user = self.POSTGRES_USER
