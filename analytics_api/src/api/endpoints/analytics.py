@@ -8,7 +8,9 @@ from src.repositories.analytics import AnalyticsRepository
 from src.service.s3_service import S3Service
 from src.service.s3_client import S3Client
 from src.api.depensens import get_s3_service, get_s3_client
-from src.celery_core.tasks import upload_daily_file
+
+# from src.celery_core.tasks import upload_daily_file
+from src.celery_core.tasks import add
 
 
 router = APIRouter()
@@ -43,7 +45,9 @@ async def get_file(file_name: str, s3_client: S3Client = Depends(get_s3_client))
 #     return await s3_service.upload_file()
 
 
-# @router.get("/trigger-task")
-# async def trigger_task():
-#     task = upload_daily_file.delay()
-#     return {"message": "Task triggered", "task_id": task.id}
+@router.get("/trigger-task")
+async def trigger_task():
+    # task = upload_daily_file.delay()
+    # return {"message": "Task triggered", "task_id": task.id}
+    task = add.delay(2, 3)
+    return {"task_id": task.id}

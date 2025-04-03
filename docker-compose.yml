@@ -147,7 +147,7 @@ services:
 
   celery-worker:
     build: ./analytics_api
-    command: poetry run celery -A src.celery_core.celery_app worker --loglevel=info
+    command: poetry run celery -A src.celery_core worker --loglevel=info
     depends_on:
       - analytics-api
       - redis
@@ -157,10 +157,12 @@ services:
       options:
         max-size: "10m"
         max-file: "5"
+    volumes:
+      - ./analytics_api:/analytics_api
 
   celery-beat:
     build: ./analytics_api
-    command: poetry run celery -A src.celery_core.celery_app beat --loglevel=info
+    command: poetry run celery -A src.celery_core beat --loglevel=info
     depends_on:
       - celery-worker
       - analytics-api
@@ -171,6 +173,8 @@ services:
       options:
         max-size: "10m"
         max-file: "5"
+    volumes:
+      - ./analytics_api:/analytics_api
 
   redis:
     image: redis:alpine
