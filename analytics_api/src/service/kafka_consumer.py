@@ -50,6 +50,7 @@ class KafkaConsumerBase:
             try:
                 self.consumer.subscribe(self.topics)
                 logging.info(f"Подписан на топики: {self.topics}")
+                break
             except KafkaException as e:
                 attempt += 1
                 delay = initial_delay * (2 ** (attempt - 1))
@@ -87,7 +88,7 @@ class KafkaConsumerBase:
             try:
                 message_value = msg.value().decode("utf-8")
                 message_data = json.loads(message_value)
-                logging.info(f"Обработка сообщения из {msg.topic()}: {message_data}")
+                logging.debug(f"Обработка сообщения из {msg.topic()}: {message_data}")
                 data = await self.analytics_repository.get()
                 try:
                     await broadcast_analytics(data)

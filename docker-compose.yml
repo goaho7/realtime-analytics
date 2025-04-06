@@ -1,6 +1,8 @@
 
 volumes:
   pg_data:
+  minio_data:
+    driver: local
 
 services:
 
@@ -25,6 +27,8 @@ services:
     depends_on:
       - user-api
     restart: unless-stopped
+    volumes:
+      - ./data_spamer:/data_spamer
     logging:
       driver: "json-file"
       options:
@@ -75,6 +79,10 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     restart: unless-stopped
     volumes:
       - ./analytics_api:/analytics_api
@@ -83,6 +91,9 @@ services:
       options:
         max-size: "10m"
         max-file: "5"
+    # environment:
+    #   - CELERY_BROKER_URL=redis://redis:6379
+    #   - CELERY_RESULT_BACKEND=redis://redis:6379
 
   kafka:
     image: confluentinc/cp-kafka:7.9.0
@@ -121,11 +132,60 @@ services:
         max-size: "10m"
         max-file: "5"
 
-  # celery-worker:
-  #   build: .
-  #   command: celery -A tasks worker --loglevel=info
-  #   depends_on:
-  #     - redis
+  minio:
+    image: 'bitnami/minio:latest'
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    environment:
+      - MINIO_ROOT_USER=user
+      - MINIO_ROOT_PASSWORD=password
+    depends_on:
+      - analytics-api
+    volumes:
+      - 'minio_data:/bitnami/minio/data'
 
-  # redis:
-  #   image: redis:alpine
+  celery-worker:
+    build: ./analytics_api
+    command: poetry run celery -A src.celery_core worker --loglevel=info
+    depends_on:
+      - analytics-api
+      - redis
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+    volumes:
+      - ./analytics_api:/analytics_api
+
+  celery-beat:
+    build: ./analytics_api
+    command: poetry run celery -A src.celery_core beat --loglevel=info
+    depends_on:
+      - celery-worker
+      - analytics-api
+      - redis
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+    volumes:
+      - ./analytics_api:/analytics_api
+
+  redis:
+    image: redis:alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"

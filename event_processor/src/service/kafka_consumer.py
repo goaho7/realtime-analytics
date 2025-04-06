@@ -1,6 +1,7 @@
 import json
 import logging
 import asyncio
+import time
 
 from confluent_kafka import Consumer, KafkaException, KafkaError
 from concurrent.futures import ThreadPoolExecutor
@@ -36,18 +37,31 @@ class KafkaConsumerBase:
             logging.error(f"Ошибка при создании консьюмера: {e}")
             raise
 
-    def subscribe_to_topics(self):
+    def subscribe_to_topics(self, max_retries=3, initial_delay=1):
         """
         Подписывает консьюмер на указанные топики.
         """
         if not self.consumer:
             raise RuntimeError("Консьюмер не создан.")
-        try:
-            self.consumer.subscribe(self.topics)
-            logging.info(f"Подписан на топики: {self.topics}")
-        except KafkaException as e:
-            logging.error(f"Ошибка подписки на топики: {e}")
-            raise RuntimeError(f"Не удалось подписаться на топики: {str(e)}")
+        attempt = 0
+        while attempt < max_retries:
+            try:
+                self.consumer.subscribe(self.topics)
+                logging.info(f"Подписан на топики: {self.topics}")
+                break
+            except KafkaException as e:
+                attempt += 1
+                delay = initial_delay * (2 ** (attempt - 1))
+                logging.error(
+                    f"Ошибка подписки на топики (попытка {attempt}/{max_retries}): {e}"
+                )
+                if attempt == max_retries:
+                    logging.critical("Исчерпаны попытки подписки, завершение работы.")
+                    raise RuntimeError(
+                        f"Не удалось подписаться на топики после {max_retries} попыток: {str(e)}"
+                    )
+                logging.info(f"Повторная попытка через {delay} секунд...")
+                time.sleep(delay)
 
     async def process_message(self, msg):
         """
