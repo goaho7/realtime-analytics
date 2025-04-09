@@ -91,9 +91,6 @@ services:
       options:
         max-size: "10m"
         max-file: "5"
-    # environment:
-    #   - CELERY_BROKER_URL=redis://redis:6379
-    #   - CELERY_RESULT_BACKEND=redis://redis:6379
 
   kafka:
     image: confluentinc/cp-kafka:7.9.0
@@ -147,7 +144,7 @@ services:
 
   celery-worker:
     build: ./analytics_api
-    command: poetry run celery -A src.celery_core worker --loglevel=info
+    command: poetry run celery -A src.celery_core.celery_worker worker --loglevel=debug
     depends_on:
       - analytics-api
       - redis
@@ -162,7 +159,7 @@ services:
 
   celery-beat:
     build: ./analytics_api
-    command: poetry run celery -A src.celery_core beat --loglevel=info
+    command: poetry run celery -A src.celery_core.celery_worker beat --loglevel=debug
     depends_on:
       - celery-worker
       - analytics-api
@@ -175,6 +172,22 @@ services:
         max-file: "5"
     volumes:
       - ./analytics_api:/analytics_api
+
+  flower:
+    build: ./analytics_api
+    command: poetry run celery -A src.celery_core.celery_worker flower --port=5555 -n flower --broker=redis://redis:6379/0 --basic-auth=user:password
+    ports:
+      - "5555:5555"
+    depends_on:
+      - celery-worker
+      - analytics-api
+      - redis
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
 
   redis:
     image: redis:alpine
