@@ -5,8 +5,10 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Dict
 from confluent_kafka import Producer, KafkaException
 from fastapi import HTTPException
+from src.utils import singleton
 
 
+@singleton
 class KafkaProducerManager:
     def __init__(self, config: Dict[str, str]):
         """

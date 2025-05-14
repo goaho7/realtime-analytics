@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     CELERY_BROKER_URL: Optional[str] = None
     CELERY_RESULT_BACKEND: Optional[str] = None
 
+    SENTRY_DSN: Optional[str] = None
+
     def async_postgres_connect(self) -> str:
         """Формирует строку подключения к PostgreSQL с использованием asyncpg."""
         user = self.POSTGRES_USER

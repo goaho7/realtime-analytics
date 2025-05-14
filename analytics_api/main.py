@@ -1,6 +1,9 @@
 import asyncio
+import sentry_sdk
+
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from sentry_sdk.integrations.asgi import SentryAsgiMiddleware
 
 from src.service.kafka_consumer import KafkaConsumerBase
 from src.api.routers import main_router
@@ -12,6 +15,13 @@ from settings.config import settings
 
 
 consumer = KafkaConsumerBase(kafka_config, kafka_topics)
+
+sentry_sdk.init(
+    dsn=settings.SENTRY_DSN,
+    traces_sample_rate=1.0,
+    environment="production",
+    send_default_pii=True,
+)
 
 
 @asynccontextmanager
@@ -36,3 +46,5 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 app.include_router(main_router)
+
+app = SentryAsgiMiddleware(app)

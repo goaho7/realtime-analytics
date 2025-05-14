@@ -12,7 +12,7 @@ logging.basicConfig(
 
 
 KAFKA_TOPIC = "analytics-updates"
-CONFIG = {
+KAFKA_CONFIG = {
     "bootstrap.servers": "broker:29092",
     "acks": "all",
     "retries": 3,
@@ -23,7 +23,7 @@ async def processing(message_data):
     await EventRepository().create(message_data)
 
     try:
-        kafka_producer = KafkaProducerManager(CONFIG)
+        kafka_producer = KafkaProducerManager(KAFKA_CONFIG)
         event_time = datetime.now().isoformat()
         await kafka_producer.send_message(KAFKA_TOPIC, {"event_time": event_time})
     except Exception as e:
