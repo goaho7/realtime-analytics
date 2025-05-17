@@ -1,7 +1,9 @@
 import asyncio
 import logging
 import sys
+import sentry_sdk
 
+from settings.config import settings
 from src.service.kafka_consumer import KafkaConsumerBase
 
 
@@ -20,6 +22,10 @@ async def main():
 
 if __name__ == "__main__":
     try:
+        sentry_sdk.init(
+            dsn=settings.SENTRY_DSN,
+            traces_sample_rate=1.0,
+        )
         asyncio.run(main())
     except Exception as e:
         logging.error(f"Критическая ошибка: {e}")
